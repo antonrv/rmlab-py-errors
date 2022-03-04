@@ -21,7 +21,7 @@ jobs:
         pip install -r requirements.txt
     - name: Install unit test dependencies
       run: |
-        pip install -r tests/requirements.txt
+        pip install -r src/tests/requirements.txt
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -30,7 +30,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run unit tests
       run: |
-        pytest tests/
+        pytest src/tests/
 
   publish-test:
     name: Publish test job
