@@ -34,7 +34,7 @@ class MethodNotAllowed(Exception):
     pass
 
 
-class ExpiredAPIBaseError(Exception):
+class ExpiredSessionError(Exception):
     """Current user session has expired. Login required."""
 
     pass
@@ -162,7 +162,7 @@ _HTTPCodeToException: Mapping[int, type] = {
     404: NotFoundError,
     405: MethodNotAllowed,
     410: VersionError,
-    440: ExpiredAPIBaseError,
+    440: ExpiredSessionError,
     498: ExpiredTokenError,
     500: InternalServerError,
     501: NotImplementedError,
