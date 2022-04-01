@@ -2,6 +2,7 @@ import logging
 import traceback
 from typing import List, Mapping
 
+_Logger = logging.getLogger(__name__)
 
 # ---- HTTP-related
 class ClientError(Exception):
@@ -221,12 +222,12 @@ def exception_to_http_code(exc: Exception) -> int:
     return exception_type_to_http_code(type(exc).__name__)
 
 
-def _single_handler(exc: Exception, debug: bool) -> Mapping[str, str]:
+def _single_handler(exc: Exception, is_debug: bool) -> Mapping[str, str]:
     """Creates a dict representation of an exception object, possibly appending traceback info.
 
     Args:
         exc (Exception): Exception object
-        debug (bool): Whether to append traceback info.
+        is_debug (bool): Whether to append traceback info.
 
     Returns:
         Mapping[str, str]: Dict representation of exception.
@@ -239,7 +240,7 @@ def _single_handler(exc: Exception, debug: bool) -> Mapping[str, str]:
         "content": str(exc) if not "html" in str(exc) else "Omitted HTML content",
         "code": exception_to_http_code(exc),
         "traceback": f'{"".join(traceback.format_tb(exc.__traceback__))}'
-        if debug and isinstance(exc, Exception)
+        if is_debug and isinstance(exc, Exception)
         else "hidden",
     }
 
@@ -254,13 +255,13 @@ def error_handler(*excs) -> Mapping[str, Mapping[str, str]]:
         Error handler returning a json with formatted errors. Input errors may be reordered if some of them are ``MultipleError``.
     """
 
-    debug = logging.root.level <= logging.DEBUG
+    is_debug = logging.root.level <= logging.DEBUG
 
     ret = {"errors": []}
 
     # Create descriptions for each of the single errors
     ret["errors"] += [
-        _single_handler(exc, debug)
+        _single_handler(exc, is_debug)
         for exc in excs
         if not isinstance(exc, MultipleError)
     ]
@@ -268,15 +269,15 @@ def error_handler(*excs) -> Mapping[str, Mapping[str, str]]:
     # Log single errors
     for single_err in ret["errors"]:
         if single_err["type"] == CriticalError.__name__:
-            logging.critical(single_err)
+            _Logger.critical(single_err)
         elif exception_type_to_http_code(single_err["type"]) >= 500:
-            logging.error(single_err)
+            _Logger.error(single_err)
         else:
-            logging.warning(single_err)
+            _Logger.warning(single_err)
 
-        if debug:
+        if is_debug:
             for k in ["type", "content", "traceback"]:
-                logging.debug(single_err[k])
+                _Logger.debug(single_err[k])
 
     # Unfold single errors within multiple errors
     ret["errors"] += [
@@ -322,3 +323,20 @@ def make_errors_from_json(*errs_json) -> Exception:
         return err_objs[0]
     else:
         return MultipleError(*err_objs)
+
+
+def raise_from_list(exceptions: List[Exception]):
+    """Collapse all exceptions in list into a single exception.
+
+    Args:
+        exceptions (List[Exception]): List of exceptions.
+
+    Raises:
+        Exception: Single exception in list
+        MultipleError: Capturing all exceptions in list
+    """
+
+    if len(exceptions) == 1:
+        raise exceptions[0]
+    elif len(exceptions) > 1:
+        raise MultipleError(*exceptions)
