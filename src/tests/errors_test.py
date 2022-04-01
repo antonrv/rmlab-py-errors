@@ -38,7 +38,7 @@ def test_error_json_conversions():
     for name, obj in members:
         cnt = "Error msg"
         err = obj(cnt)
-        err_json = _single_handler(err, debug=False)
+        err_json = _single_handler(err, is_debug=False)
 
         assert "type" in err_json
         assert "content" in err_json
@@ -83,7 +83,7 @@ def test_multiple():
     assert len(multiple_exc.errors) == 3
 
     with pytest.raises(AssertionError):
-        _single_handler(multiple_exc, debug=False)
+        _single_handler(multiple_exc, is_debug=False)
 
     multiple_json = error_handler(multiple_exc)
 
